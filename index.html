@@ -267,13 +267,33 @@ function SetupScreen({onDone}){
 // Auth
 function AuthScreen(){
   const[isL,setIsL]=useState(true);const[em,setEm]=useState("");const[pw,setPw]=useState("");const[err,setErr]=useState("");const[ld,setLd]=useState(false);
-  const go=async()=>{
-    setErr("");setLd(true);
-    try{if(isL)await auth.signInWithEmailAndPassword(em,pw);else {
-  const cred = await auth.createUserWithEmailAndPassword(em,pw);
-  await cred.user.sendEmailVerification();
-  alert("Verification email sent! Check your inbox (and spam folder).");
-}
+const go = async () => {
+  setErr("");
+  setLd(true);
+
+  try {
+    if (isL) {
+      await auth.signInWithEmailAndPassword(em, pw);
+    } else {
+      const cred = await auth.createUserWithEmailAndPassword(em, pw);
+      await cred.user.sendEmailVerification();
+      alert("Verification email sent! Check your inbox.");
+    }
+  } catch (e) {
+    const m = {
+      "auth/email-already-in-use": "Email already registered.",
+      "auth/invalid-email": "Invalid email.",
+      "auth/weak-password": "Min 6 chars.",
+      "auth/user-not-found": "No account found.",
+      "auth/wrong-password": "Wrong password.",
+      "auth/invalid-credential": "Invalid credentials.",
+      "auth/too-many-requests": "Too many attempts."
+    };
+    setErr(m[e.code] || e.message);
+  }
+
+  setLd(false);
+};
     catch(e){const m={"auth/email-already-in-use":"Email already registered.","auth/invalid-email":"Invalid email.","auth/weak-password":"Min 6 chars.","auth/user-not-found":"No account found.","auth/wrong-password":"Wrong password.","auth/invalid-credential":"Invalid credentials.","auth/too-many-requests":"Too many attempts."};setErr(m[e.code]||e.message);}
     setLd(false);
   };
