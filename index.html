@@ -269,7 +269,11 @@ function AuthScreen(){
   const[isL,setIsL]=useState(true);const[em,setEm]=useState("");const[pw,setPw]=useState("");const[err,setErr]=useState("");const[ld,setLd]=useState(false);
   const go=async()=>{
     setErr("");setLd(true);
-    try{if(isL)await auth.signInWithEmailAndPassword(em,pw);else await auth.createUserWithEmailAndPassword(em,pw);}
+    try{if(isL)await auth.signInWithEmailAndPassword(em,pw);else {
+  const cred = await auth.createUserWithEmailAndPassword(em,pw);
+  await cred.user.sendEmailVerification();
+  alert("Verification email sent! Check your inbox (and spam folder).");
+}
     catch(e){const m={"auth/email-already-in-use":"Email already registered.","auth/invalid-email":"Invalid email.","auth/weak-password":"Min 6 chars.","auth/user-not-found":"No account found.","auth/wrong-password":"Wrong password.","auth/invalid-credential":"Invalid credentials.","auth/too-many-requests":"Too many attempts."};setErr(m[e.code]||e.message);}
     setLd(false);
   };
@@ -282,6 +286,7 @@ function AuthScreen(){
     </div>
     <div className="err">{err}</div>
     <button className="btn bp" style={{width:"100%",padding:11}} onClick={go} disabled={ld}>{ld?"Please wait...":(isL?"Log In":"Create Account")}</button>
+    {isL&&<div style={{marginTop:10}}><a style={{fontSize:".78rem",color:"var(--amber)"}} onClick={async()=>{if(!em.trim()){setErr("Enter your email first.");return;}try{await auth.sendPasswordResetEmail(em);alert("Password reset email sent! Check your inbox.");}catch(e){setErr(e.message);}}}>Forgot password?</a></div>}
     <div className="switch">{isL?<span>No account? <a onClick={()=>{setIsL(false);setErr("")}}>Sign up</a></span>:<span>Have account? <a onClick={()=>{setIsL(true);setErr("")}}>Log in</a></span>}</div>
     <div style={{marginTop:12}}><a style={{fontSize:".75rem"}} onClick={()=>{localStorage.removeItem("tmg_fb");location.reload();}}>⚙️ Change Firebase Config</a></div>
   </div></div>);
@@ -610,12 +615,30 @@ function App(){
 
     if(FIREBASE_API_KEY&&FIREBASE_AUTH_DOMAIN&&FIREBASE_PROJECT_ID){
   const c={apiKey:FIREBASE_API_KEY,authDomain:FIREBASE_AUTH_DOMAIN,projectId:FIREBASE_PROJECT_ID};
-  if(initFirebase(c)){auth.onAuthStateChanged(u=>{if(u){setUser(u);setPhase("app");}else{setPhase("auth");}});return;}
+  if(initFirebase(c)){auth.onAuthStateChanged(u=>{if(u){
+  if(!u.emailVerified){
+    auth.signOut();
+    alert("Please verify your email before logging in. Check your inbox.");
+    setPhase("auth");
+  } else {
+    setUser(u);
+    setPhase("app");
+  }
+}else{setPhase("auth");}});return;}
 }
     const s=localStorage.getItem("tmg_fb");
     if(!s){setPhase("setup");return;}
     try{const c=JSON.parse(s);if(!initFirebase(c)){setPhase("setup");return;}
-      auth.onAuthStateChanged(u=>{if(u){setUser(u);setPhase("app");}else{setPhase("auth");}});
+      auth.onAuthStateChanged(u=>{if(u){
+  if(!u.emailVerified){
+    auth.signOut();
+    alert("Please verify your email before logging in. Check your inbox.");
+    setPhase("auth");
+  } else {
+    setUser(u);
+    setPhase("app");
+  }
+}else{setPhase("auth");}});
     }catch(e){setPhase("setup");}
   },[]);
 
