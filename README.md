@@ -1,0 +1,2 @@
+# Turacon
+Trading discipline journal
